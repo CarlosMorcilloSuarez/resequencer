@@ -11,7 +11,7 @@ fastResequencer.py
 
 __author__ = "Carlos Morcillo Suarez"
 __license__ = "GPL"
-__version__ = "1.0"
+__version__ = "1.1"
 
 import sys
 import re
@@ -20,6 +20,8 @@ import random
 import getopt
 import numpy as np
 import gzip
+from Bio.Seq import Seq
+from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 # Globals -----------------------------------------
 referenceGenomeFileName = ''
@@ -64,6 +66,7 @@ def usage():
 
     '''
 
+
 # Process command line options
 def proccessCommandLine(argv):
     try:
@@ -71,8 +74,8 @@ def proccessCommandLine(argv):
                                 argv,
                                 "r:o:c:e:s:l:",
                                 ["reference=", "output-file=", "coverage=",
-                                    "error-rate=", "seed=",
-                                    "length="])
+                                 "error-rate=", "seed=",
+                                 "length="])
 
     except getopt.GetoptError:
         usage()
@@ -105,21 +108,6 @@ def proccessCommandLine(argv):
             global seed
             seed = arg
 
-# Returns complementary strand 'AATCC' -> 'GGATT'
-def changeReadStrand(sequence):
-    equiv = { "A":"T",
-              "C":"G",
-              "G":"C",
-              "T":"A",
-              "N":"N",
-              "a":"t",
-              "c":"g",
-              "g":"c",
-              "t":"a",
-              "n":"n",
-            }
-    return "".join([equiv[char] for char in sequence][::-1])
-
 
 def kmerGenerator(referenceGenomeFileName,length):
     '''
@@ -130,38 +118,12 @@ def kmerGenerator(referenceGenomeFileName,length):
         It returns kmers shorter than the given length when it arrives at
         the end of a chromosome
     '''
-    workingSequence = ''
-    endOfChromosome = False
-    endOfFile = False
     with open(referenceGenomeFileName,"r") as referenceGenomeFile:
-        # Eliminates initial chromosome reference and comments
-        while True:
-            currentLine = referenceGenomeFile.next().strip()
-            if not re.search('[>#]',currentLine):
-                break
-        workingSequence = currentLine
-
-        while not endOfFile or endOfChromosome:
-            # Elongates workingSequence if it is shorter that read length
-            # and it is not the end of chromosome
-            while len(workingSequence) < length and not endOfChromosome:
-                try:
-                    currentLine = referenceGenomeFile.next().strip()
-                    if re.search('[>#]',currentLine):
-                        endOfChromosome = True
-                    else:
-                        workingSequence = workingSequence +  currentLine
-                # If we have reached end of file
-                except Exception as e:
-                    endOfFile = True
-                    endOfChromosome = True
-
-
-            yield workingSequence[:length]
-            workingSequence = workingSequence[1:]
-            if endOfChromosome:
-                if len(workingSequence) < 1:
-                    endOfChromosome = False
+        for chr,seq in SimpleFastaParser(referenceGenomeFile):
+            currentPosition = 0
+            while currentPosition < len(seq):
+                yield seq[currentPosition:currentPosition+length]
+                currentPosition += 1
 
 
 if __name__ == '__main__':
@@ -196,7 +158,7 @@ if __name__ == '__main__':
 
                 # half of the reads are from + strand, half from - strand
                 if (random.choice("+-") == "-"):
-                    read = changeReadStrand(read)
+                    read = str(Seq(read).reverse_complement())
 
                 # Genotyping errors
                 if errorRate != 0:
