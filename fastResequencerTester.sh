@@ -1,52 +1,116 @@
 #!/bin/bash
 
-# FUNCTIONS ===============================================================
 
-# Executes the given command and checks if the output file is
-# created with the right name and if its contents are identical
-# to the model file
-test_created_files(){
-  TEST_NAME=$1
-  COMMAND=$2
-  TARGET_DIRECTORY_NAME=$3
-  REFERENCE_DIRECTORY_NAME=$4
+run_tests(){
 
+# Tests are written here ###################################
+
+# Test ----------------------------------------
+initialize_test "Generates fastq file with default_values"
+
+python fastResequencer.py \
+  --reference ./test/inputs/Rat-Monkey_Reference.fa \
+  --output-file ./test/outputs/fastTest1.fq \
+  --seed 1969
+
+compare_files \
+  ./test/outputs/fastTest1.fq \
+  ./test/inputs/references/Model_fastTest1.fq
+
+
+# Test ----------------------------------------
+initialize_test "Generates gzip fastq file"
+
+python fastResequencer.py \
+  --reference ./test/inputs/Rat-Monkey_Reference.fa \
+  --output-file ./test/outputs/fastTest2.fq.gz \
+  --seed 1969
+
+compare_files \
+  ./test/outputs/fastTest2.fq.gz \
+  ./test/inputs/references/Model_fastTest2.fq.gz
+
+############################################################
+}
+
+
+# Testing Functions
+
+initialize_test(){
   echo
-  echo
-  echo ${TEST_NAME}
-  echo
+  echo $1
+}
 
-  # Cleans target directory before command execution
-  rm -r ./testingFiles/${TARGET_DIRECTORY_NAME}/*
 
-  # Executes command
-  eval ${COMMAND}
+compare_strings(){
+  STRING=$1
+  REFERENCE_STRING=$2
+
+  if [ "${STRING}" = "${REFERENCE_STRING}" ]
+  then
+    echo "------------------------------------------------- OK"
+  else
+    echo "ERROR ------------------------------ ERROR"
+    echo ${STRING}---${REFERENCE_STRING}--- Seem to be different
+  fi
+}
+
+
+compare_files(){
+  FILE_NAME=$1
+  MODEL_FILE=$2
+
+  # Checks expected outputfile
+  if [ -f "${FILE_NAME}" ]
+  then
+      zdiff ${FILE_NAME} ${MODEL_FILE} > /dev/null
+      if test $? -eq 0
+      then
+        echo "------------------------------------------------- OK"
+      else
+        echo "ERROR ------------------------------ ERROR"
+        echo ${FILE_NAME} --- ${MODEL_FILE}     --- Seem to be different
+      fi
+  else
+      echo 'ERROR ------------------------------ ERROR'
+      echo "Expected ${FILE_NAME} not found."
+  fi
+}
+
+
+
+compare_directories(){
+  TARGET_DIRECTORY_NAME=$1
+  REFERENCE_DIRECTORY_NAME=$2
 
   # Checks whether both directories have identical content
-  targetContent=$( \
-      find ./testingFiles/${TARGET_DIRECTORY_NAME} -type f \
-      | sed -r s/^\\.\\/testingFiles\\/${TARGET_DIRECTORY_NAME}//g \
-      | sed s/^\\///g )
-  referenceContent=$( \
-      find ./testingFiles/${REFERENCE_DIRECTORY_NAME} -type f \
-      | sed -r s/^\\.\\/testingFiles\\/${REFERENCE_DIRECTORY_NAME}//g \
-      | sed s/^\\///g )
+  TARGET_DIRECTORY_NAME_LENGTH=${#TARGET_DIRECTORY_NAME}
+  targetContent=$(
+                find ${TARGET_DIRECTORY_NAME} -type f |
+                cut -c$((${TARGET_DIRECTORY_NAME_LENGTH}+2))-
+                )
+
+  REFERENCE_DIRECTORY_NAME_LENGTH=${#REFERENCE_DIRECTORY_NAME}
+  referenceContent=$(
+                find ${REFERENCE_DIRECTORY_NAME} -type f |
+                cut -c$((${REFERENCE_DIRECTORY_NAME_LENGTH}+2))-
+                )
 
   STATUS='OK'
   for file in $(echo "${targetContent} ${referenceContent}" \
                       | tr ' ' '\n' \
                       | sort -u)
   do
-  	ZDIFF_OUTPUT=$(zdiff ./testingFiles/${TARGET_DIRECTORY_NAME}/${file} \
-                         ./testingFiles/${REFERENCE_DIRECTORY_NAME}/${file})
+    ZDIFF_OUTPUT=$(zdiff ${TARGET_DIRECTORY_NAME}/${file} \
+                        ${REFERENCE_DIRECTORY_NAME}/${file})
     if test $? -ne 0
     then
       STATUS='NOK'
-      echo ./testingFiles/${TARGET_DIRECTORY_NAME}/${file}
-      echo "${ZDIFF_OUTPUT}"
-    else
-      echo ./testingFiles/${TARGET_DIRECTORY_NAME}/${file}
-      echo "OK"
+      echo -e '\t'${TARGET_DIRECTORY_NAME}/${file}
+      echo -e '\t'"${ZDIFF_OUTPUT}"
+    #else
+      #echo -e '\t'${TARGET_DIRECTORY_NAME}/${file}
+      #echo -e '\t'"OK"
     fi
   done
 
@@ -60,49 +124,41 @@ test_created_files(){
 
 
 
+# Creates and cleans test directory structure
+if true; then
+  if [ ! -d "test" ]; then
 
-# TESTS ====================================================================
+    mkdir test
+    mkdir test/scripts
+    mkdir test/inputs
+    mkdir test/tmp
+    mkdir test/outputs
 
-# Test -----------------------------------------------------------------
-# Config Area
-TEST_NAME="test_fastResequencer_default_values"
-COMMAND='
-      python fastResequencer.py
-      --reference ./testingFiles/Rat-Monkey_Reference.fa
-      --output-file ./testingFiles/fastTest1/fastTest1.fq
-      --seed 1969
-      '
-# The previous command should create output files in the directory:
-TARGET_DIRECTORY_NAME='fastTest1'
-# That should be identical to those in the directory:
-REFERENCE_DIRECTORY_NAME='fastTest1_Reference'
+  else
 
+    if [ ! -d "test/scripts" ]; then
+    mkdir test/scripts
+    fi
 
-# Execution Area - don't touch it
-test_created_files "${TEST_NAME}" \
-                  "${COMMAND}" \
-                  "${TARGET_DIRECTORY_NAME}" \
-                  "${REFERENCE_DIRECTORY_NAME}"
+    if [ ! -d "test/inputs" ]; then
+    mkdir test/inputs
+    fi
 
+    if [ ! -d "test/tmp" ]; then
+    mkdir test/tmp
+    else
+    rm -fR test/tmp/*
+    fi
 
+    if [ ! -d "test/outputs" ]; then
+    mkdir test/outputs
+    else
+    rm -fR test/outputs/*
+    fi
 
-# Test -----------------------------------------------------------------
-# Config Area
-TEST_NAME="test_fastResequencer_default_values_zip"
-COMMAND='
-      python fastResequencer.py
-      --reference ./testingFiles/Rat-Monkey_Reference.fa
-      --output-file ./testingFiles/fastTest2/sample.fq.gz
-      --seed 1969
-      '
-# The previous command should create output files in the directory:
-TARGET_DIRECTORY_NAME='fastTest2'
-# That should be identical to those in the directory:
-REFERENCE_DIRECTORY_NAME='fastTest2_Reference'
+  fi
+else
+  echo "WARNING -- TESTING MODE"
+fi
 
-
-# Execution Area - don't touch it
-test_created_files "${TEST_NAME}" \
-                  "${COMMAND}" \
-                  "${TARGET_DIRECTORY_NAME}" \
-                  "${REFERENCE_DIRECTORY_NAME}"
+run_tests
