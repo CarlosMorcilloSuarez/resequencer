@@ -30,6 +30,9 @@ compare_files \
   ./test/outputs/fastTest2.fq.gz \
   ./test/inputs/references/Model_fastTest2.fq.gz
 
+
+
+
 ############################################################
 }
 

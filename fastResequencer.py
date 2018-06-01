@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 '''
 fastResequencer.py
     Generates a fastq file simulating a resequencing of an individual with
@@ -11,7 +11,7 @@ fastResequencer.py
 
 __author__ = "Carlos Morcillo Suarez"
 __license__ = "GPL"
-__version__ = "1.1"
+__version__ = "1.2"
 
 import sys
 import re
@@ -23,15 +23,6 @@ import gzip
 from Bio.Seq import Seq
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
-# Globals -----------------------------------------
-referenceGenomeFileName = ''
-outputFileName = 'sample.fq'
-coverage = 15
-readLength = 100
-errorRate = 0
-seed = None
-
-# Functions -----------------------------------------
 
 def usage():
     print '''
@@ -128,6 +119,13 @@ def kmerGenerator(referenceGenomeFileName,length):
 
 if __name__ == '__main__':
 
+    referenceGenomeFileName = ''
+    outputFileName = 'sample.fq'
+    coverage = 15
+    readLength = 100
+    errorRate = 0
+    seed = None
+
     # Process command line options
     proccessCommandLine(sys.argv[1:])
 
@@ -140,8 +138,6 @@ if __name__ == '__main__':
     fileOpen = open
     if re.search('.gz$',outputFileName):
         fileOpen = gzip.open
-
-
 
     # Creates reads and writes them to fastaq file
     # For each kmer in the fasta file generates a number of reads

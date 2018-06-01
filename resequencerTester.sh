@@ -2,7 +2,6 @@
 
 
 run_tests(){
-
 # Tests are written here ###################################
 
 # Test ----------------------------------------
@@ -59,6 +58,24 @@ python resequencer.py \
 compare_files \
   ./test/outputs/Test4.fastq \
   ./test/inputs/references/Model_Test4.fastq
+
+# Test ----------------------------------------
+initialize_test "resequencer: generates two pair-ended fastq files"
+
+python resequencer.py \
+  --reference ./test/inputs/Rat-Monkey_Reference.fa \
+  --pair-ended 300 \
+  --name ./test/outputs/Test5 \
+  --seed 1969
+
+compare_files \
+  ./test/outputs/Test5_1.fastq \
+  ./test/inputs/references/Model_Test5_1.fastq
+
+  compare_files \
+    ./test/outputs/Test5_2.fastq \
+    ./test/inputs/references/Model_Test5_2.fastq
+
 
 ############################################################
 }
