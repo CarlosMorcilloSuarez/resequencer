@@ -42,7 +42,7 @@ def usage():
                 (default: 0)
 
             -l, --length
-                length of reads to be generated
+                length of reads to be generated (default: 100)
 
             -s, --seed
                 a seed for the random generator,
@@ -107,6 +107,7 @@ def proccessCommandLine(argv):
 def getRandomPosition(sequence):
     return(random.randint(0,len(sequence)-1))
 
+
 def introduceGenotypingErrors(sequence,errorRate):
     tmpList = list(sequence)
     for i,nucleotide in enumerate(tmpList):
@@ -114,6 +115,7 @@ def introduceGenotypingErrors(sequence,errorRate):
             choices = re.sub(tmpList[i],'','ACGT')
             tmpList[i] = random.choice(choices)
     return ''.join(tmpList)
+
 
 if __name__ == '__main__':
 
@@ -125,7 +127,6 @@ if __name__ == '__main__':
     errorRate = 0.000
     seed = None
     averageFragmentLength = 0
-
 
     # Process command line options
     proccessCommandLine(sys.argv[1:])
@@ -151,7 +152,6 @@ if __name__ == '__main__':
     # with '*'s separating chromosomes
     genomeSequence = "*".join(genome)
 
-
     # If there is a CNV configuration file, CNV variation is introduced
     if cnvFileName != '':
         cnvConfig = []
@@ -172,7 +172,6 @@ if __name__ == '__main__':
                     genomeSequence = genomeSequence[:insertionPoint]+\
                                      cnvSequence+\
                                      genomeSequence[insertionPoint:]
-
 
     # Creates random reads
     numberOfReads = coverage * len(genomeSequence) / averageReadLength
@@ -206,7 +205,13 @@ if __name__ == '__main__':
                 fastqFile.write("@%s.%d\n" % (sampleName,readNumber))
                 fastqFile.write("%s\n" % (read))
                 fastqFile.write("+%s.%d\n" % (sampleName,readNumber))
-                fastqFile.write("%s\n" % (re.sub(".","A",read)))
+                fastqFile.write("%s\n" % (re.sub(
+                                            "^AAA",
+                                            "77A",
+                                            re.sub(".","A",read)
+                                            )
+                                          )
+                                )
 
     # for pair ended fastq files
     else:
@@ -256,9 +261,21 @@ if __name__ == '__main__':
                     fastqFile1.write("@%s_1.%d\n" % (sampleName,readNumber))
                     fastqFile1.write("%s\n" % (read1))
                     fastqFile1.write("+%s_1.%d\n" % (sampleName,readNumber))
-                    fastqFile1.write("%s\n" % (re.sub(".","A",read1)))
+                    fastqFile1.write("%s\n" % (re.sub(
+                                                "^AAA",
+                                                "77A",
+                                                re.sub(".","A",read1)
+                                                )
+                                              )
+                                    )
 
                     fastqFile2.write("@%s_2.%d\n" % (sampleName,readNumber))
                     fastqFile2.write("%s\n" % (read2))
                     fastqFile2.write("+%s_2.%d\n" % (sampleName,readNumber))
-                    fastqFile2.write("%s\n" % (re.sub(".","A",read2)))
+                    fastqFile2.write("%s\n" % (re.sub(
+                                                "^AAA",
+                                                "77A",
+                                                re.sub(".","A",read2)
+                                                )
+                                              )
+                                    )

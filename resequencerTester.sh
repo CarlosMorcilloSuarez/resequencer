@@ -59,6 +59,7 @@ compare_files \
   ./test/outputs/Test4.fastq \
   ./test/inputs/references/Model_Test4.fastq
 
+
 # Test ----------------------------------------
 initialize_test "resequencer: generates two pair-ended fastq files"
 
