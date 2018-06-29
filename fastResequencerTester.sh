@@ -31,7 +31,19 @@ compare_files \
   ./test/inputs/references/Model_fastTest2.fq.gz
 
 
+  # Test ----------------------------------------
+  initialize_test "Fragments Genome into 100 length, 25 overlap reads"
 
+  python fastResequencer.py \
+    --reference ./test/inputs/Rat-Monkey_Reference.fa \
+    --output-file ./test/outputs/fastTest3.fq \
+    --full 25 \
+    --length 100 \
+    --seed 1969
+
+  compare_files \
+    ./test/outputs/fastTest3.fq \
+    ./test/inputs/references/Model_fastTest3.fq
 
 ############################################################
 }

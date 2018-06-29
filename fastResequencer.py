@@ -53,7 +53,18 @@ def usage():
                 (default: 100)
 
             -s, --seed
-                a seed for the random generator,
+                a seed for the random generator
+                
+            -f, --full
+                fragments the genome in reads with the given overlap instead 
+                of stochastically generating reads at random places
+                --full 10
+                    Next read begins at position 10 of previous one.
+                --full  0
+                    Contiguous fragments without overlap 
+                    
+                If overlap is bigger than length, gaps between reads will
+                result.
 
     '''
 
@@ -63,10 +74,10 @@ def proccessCommandLine(argv):
     try:
         opts, remainder = getopt.getopt(
                                 argv,
-                                "r:o:c:e:s:l:",
+                                "r:o:c:e:s:l:f:",
                                 ["reference=", "output-file=", "coverage=",
                                  "error-rate=", "seed=",
-                                 "length="])
+                                 "length=","full="])
 
     except getopt.GetoptError:
         usage()
@@ -98,9 +109,14 @@ def proccessCommandLine(argv):
         elif opt in ("-s", "--seed"):
             global seed
             seed = arg
+        elif opt in ("-f", "--full"):
+            global overlap
+            global full
+            full = True
+            overlap = int(arg)        
 
 
-def kmerGenerator(referenceGenomeFileName,length):
+def kmerGenerator(referenceGenomeFileName,length,overlap):
     '''
         Generator that returns all kmers from the reference sequence
         of the given length
@@ -114,7 +130,7 @@ def kmerGenerator(referenceGenomeFileName,length):
             currentPosition = 0
             while currentPosition < len(seq):
                 yield seq[currentPosition:currentPosition+length]
-                currentPosition += 1
+                currentPosition += overlap
 
 
 if __name__ == '__main__':
@@ -125,6 +141,8 @@ if __name__ == '__main__':
     readLength = 100
     errorRate = 0
     seed = None
+    full = False
+    overlap = 0
 
     # Process command line options
     proccessCommandLine(sys.argv[1:])
@@ -144,29 +162,42 @@ if __name__ == '__main__':
     # Following a poisson distribution
     readNumber = 0
     with fileOpen(outputFileName, "w") as fastqFile:
-        for kmer in kmerGenerator(referenceGenomeFileName,readLength):
-            # Determines how many times this kmer will appear in the
-            # output file. Uses a random Poisson distribution
-            repeats = np.random.poisson(float(coverage)/readLength)
-            for repeat in range(repeats):
+        # Consecutive fragmenting of all genome
+        if full:
+            for kmer in kmerGenerator(
+                            referenceGenomeFileName,
+                            readLength,
+                            overlap):
                 readNumber += 1
-                read = kmer
-
-                # half of the reads are from + strand, half from - strand
-                if (random.choice("+-") == "-"):
-                    read = str(Seq(read).reverse_complement())
-
-                # Genotyping errors
-                if errorRate != 0:
-                    tmpList = list(read)
-                    for i,nucleotide in enumerate(tmpList):
-                        if random.random() < errorRate:
-                            choices = re.sub(tmpList[i],'','ACGT')
-                            tmpList[i] = random.choice(choices)
-                    read = ''.join(tmpList)
-
-
                 fastqFile.write("@%s.%d\n" % (outputFileName,readNumber))
-                fastqFile.write("%s\n" % (read))
+                fastqFile.write("%s\n" % (kmer))
                 fastqFile.write("+%s.%d\n" % (outputFileName,readNumber))
-                fastqFile.write("%s\n" % (re.sub(".","A",read)))
+                fastqFile.write("%s\n" % (re.sub(".","A",kmer)))                
+        # Stochastic generation of reads
+        else:
+            for kmer in kmerGenerator(referenceGenomeFileName,readLength,1):
+                # Determines how many times this kmer will appear in the
+                # output file. Uses a random Poisson distribution
+                repeats = np.random.poisson(float(coverage)/readLength)
+                for repeat in range(repeats):
+                    readNumber += 1
+                    read = kmer
+
+                    # half of the reads are from + strand, half from - strand
+                    if (random.choice("+-") == "-"):
+                        read = str(Seq(read).reverse_complement())
+
+                    # Genotyping errors
+                    if errorRate != 0:
+                        tmpList = list(read)
+                        for i,nucleotide in enumerate(tmpList):
+                            if random.random() < errorRate:
+                                choices = re.sub(tmpList[i],'','ACGT')
+                                tmpList[i] = random.choice(choices)
+                        read = ''.join(tmpList)
+
+
+                    fastqFile.write("@%s.%d\n" % (outputFileName,readNumber))
+                    fastqFile.write("%s\n" % (read))
+                    fastqFile.write("+%s.%d\n" % (outputFileName,readNumber))
+                    fastqFile.write("%s\n" % (re.sub(".","A",read)))
