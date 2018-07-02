@@ -11,7 +11,7 @@ fastResequencer.py
 
 __author__ = "Carlos Morcillo Suarez"
 __license__ = "GPL"
-__version__ = "1.3"
+__version__ = "1.4"
 
 import sys
 import re
@@ -124,12 +124,23 @@ def kmerGenerator(referenceGenomeFileName,length,overlap):
         It navigates the chromosome structure of the fasta file
         It returns kmers shorter than the given length when it arrives at
         the end of a chromosome
+        
+        Returns tuple:
+            chromosome,
+            init position of fragment (BED coordinates, i.e begins wihth 0),
+            end position of fragment  (BED coordinates, i.e end position
+                                       not included),
+            sequence of fragment
     '''
     with open(referenceGenomeFileName,"r") as referenceGenomeFile:
         for chr,seq in SimpleFastaParser(referenceGenomeFile):
             currentPosition = 0
             while currentPosition < len(seq):
-                yield seq[currentPosition:currentPosition+length]
+                yield ( chr,
+                        currentPosition,
+                        currentPosition+length,
+                        seq[currentPosition:currentPosition+length]
+                        )
                 currentPosition += overlap
 
 
@@ -162,20 +173,33 @@ if __name__ == '__main__':
     # Following a poisson distribution
     readNumber = 0
     with fileOpen(outputFileName, "w") as fastqFile:
+        
         # Consecutive fragmenting of all genome
         if full:
-            for kmer in kmerGenerator(
+            for chr, initPosition, endPosition, kmer in kmerGenerator(
                             referenceGenomeFileName,
                             readLength,
                             overlap):
                 readNumber += 1
-                fastqFile.write("@%s.%d\n" % (outputFileName,readNumber))
+                fastqFile.write("@%s.%s:%d-%d\n" % (outputFileName,
+                                                    chr,
+                                                    initPosition,
+                                                    endPosition)
+                                )
                 fastqFile.write("%s\n" % (kmer))
-                fastqFile.write("+%s.%d\n" % (outputFileName,readNumber))
+                fastqFile.write("+%s.%s:%d-%d\n" % (outputFileName,
+                                                    chr,
+                                                    initPosition,
+                                                    endPosition)
+                                )
                 fastqFile.write("%s\n" % (re.sub(".","A",kmer)))                
+        
         # Stochastic generation of reads
         else:
-            for kmer in kmerGenerator(referenceGenomeFileName,readLength,1):
+            for chr, initPosition, endPosition, kmer in kmerGenerator(
+                            referenceGenomeFileName,
+                            readLength,
+                            1):
                 # Determines how many times this kmer will appear in the
                 # output file. Uses a random Poisson distribution
                 repeats = np.random.poisson(float(coverage)/readLength)
