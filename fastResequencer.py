@@ -11,7 +11,7 @@ fastResequencer.py
 
 __author__ = "Carlos Morcillo Suarez"
 __license__ = "GPL"
-__version__ = "1.4"
+__version__ = "1.45"
 
 import sys
 import re
@@ -134,6 +134,7 @@ def kmerGenerator(referenceGenomeFileName,length,overlap):
     '''
     with open(referenceGenomeFileName,"r") as referenceGenomeFile:
         for chr,seq in SimpleFastaParser(referenceGenomeFile):
+            chr = chr.split()[0]
             currentPosition = 0
             while currentPosition < len(seq):
                 yield ( chr,
