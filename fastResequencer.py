@@ -11,7 +11,7 @@ fastResequencer.py
 
 __author__ = "Carlos Morcillo Suarez"
 __license__ = "GPL"
-__version__ = "1.45"
+__version__ = "1.5"
 
 import sys
 import re
@@ -182,13 +182,13 @@ if __name__ == '__main__':
                             readLength,
                             overlap):
                 readNumber += 1
-                fastqFile.write("@%s.%s:%d-%d\n" % (outputFileName,
+                fastqFile.write("@%s:%s:%d:%d\n" % (outputFileName,
                                                     chr,
                                                     initPosition,
                                                     endPosition)
                                 )
                 fastqFile.write("%s\n" % (kmer))
-                fastqFile.write("+%s.%s:%d-%d\n" % (outputFileName,
+                fastqFile.write("+%s:%s:%d:%d\n" % (outputFileName,
                                                     chr,
                                                     initPosition,
                                                     endPosition)
