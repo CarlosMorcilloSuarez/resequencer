@@ -44,6 +44,21 @@ compare_files \
   compare_files \
     ./test/outputs/fastTest3.fq \
     ./test/inputs/references/Model_fastTest3.fq
+    
+  # Test ----------------------------------------
+  initialize_test "Fragments Genome without reads smaller than given length"
+
+  python fastResequencer.py \
+    --reference ./test/inputs/Rat-Monkey_Reference.fa \
+    --output-file ./test/outputs/fastTest4.fq \
+    --full 25 \
+    --length 100 \
+    --whole \
+    --seed 1969
+
+  compare_files \
+    ./test/outputs/fastTest4.fq \
+    ./test/inputs/references/Model_fastTest4.fq
 
 ############################################################
 }

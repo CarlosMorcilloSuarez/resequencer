@@ -65,6 +65,10 @@ def usage():
                     
                 If overlap is bigger than length, gaps between reads will
                 result.
+            -w, --whole
+                doesn't create reads smaller than length at the end of the 
+                chromosome
+                defalut = False
 
     '''
 
@@ -74,10 +78,10 @@ def proccessCommandLine(argv):
     try:
         opts, remainder = getopt.getopt(
                                 argv,
-                                "r:o:c:e:s:l:f:",
+                                "r:o:c:e:s:l:f:w",
                                 ["reference=", "output-file=", "coverage=",
                                  "error-rate=", "seed=",
-                                 "length=","full="])
+                                 "length=","full=","whole"])
 
     except getopt.GetoptError:
         usage()
@@ -113,17 +117,20 @@ def proccessCommandLine(argv):
             global overlap
             global full
             full = True
-            overlap = int(arg)        
+            overlap = int(arg)  
+        elif opt in ("-w", "--whole"):
+            global whole
+            whole = True      
 
 
-def kmerGenerator(referenceGenomeFileName,length,overlap):
+def kmerGenerator(referenceGenomeFileName,length,overlap,whole=False):
     '''
         Generator that returns all kmers from the reference sequence
         of the given length
 
         It navigates the chromosome structure of the fasta file
         It returns kmers shorter than the given length when it arrives at
-        the end of a chromosome
+        the end of a chromosome unles whole=True
         
         Returns tuple:
             chromosome,
@@ -136,7 +143,10 @@ def kmerGenerator(referenceGenomeFileName,length,overlap):
         for chr,seq in SimpleFastaParser(referenceGenomeFile):
             chr = chr.split()[0]
             currentPosition = 0
-            while currentPosition < len(seq):
+            lenSeq = len(seq)
+            if whole:
+                lenSeq = lenSeq-length
+            while currentPosition < lenSeq:
                 yield ( chr,
                         currentPosition,
                         currentPosition+length,
@@ -155,6 +165,7 @@ if __name__ == '__main__':
     seed = None
     full = False
     overlap = 0
+    whole = False
 
     # Process command line options
     proccessCommandLine(sys.argv[1:])
@@ -180,7 +191,8 @@ if __name__ == '__main__':
             for chr, initPosition, endPosition, kmer in kmerGenerator(
                             referenceGenomeFileName,
                             readLength,
-                            overlap):
+                            overlap,
+                            whole):
                 readNumber += 1
                 fastqFile.write("@%s:%s:%d:%d\n" % (outputFileName,
                                                     chr,
